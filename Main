@@ -1,1 +1,128 @@
-
+#import needed libraries of code
+import pygame, random
+from pygame.locals import *
+#initialize the game engine
+pygame.init()
+vec = pygame.math.Vector2
+#variables are like boxes that store information: vaules (like numbers or test) or
+objects (like images or sounds or vectors)
+#constants do not change during the program and they stay the same
+#we use all capital letters to show that they are constants
+#constants to be used later for screen dimension
+HEIGHT = 450
+WIDTH = 400
+#constants to be used later in our game physics
+ACC = 0.5
+FRIC = -0.12
+#constant for our frame rate for our game
+FPS = 60
+#classes for game objects
+class Player(pygame.sprite.Sprite):
+ def __init__(self):
+ super().__init__()
+ self.surf = pygame.Surface((30,30))
+ self.surf.fill((128,255,40))
+ self.rect = self.surf.get_rect()
+ self.pos = vec((20, 385))
+ self.vel = vec(0,0)
+ self.acc = vec(0,0)
+ def move(self):
+ self.acc = vec(0,0.5)
+ pressed_keys = pygame.key.get_pressed()
+ if pressed_keys[K_LEFT]:
+ self.acc.x = -ACC
+ if pressed_keys[K_RIGHT]:
+ self.acc.x = ACC
+ #3 lines of physics
+ self.acc.x += self.vel.x * FRIC
+ self.vel += self.acc
+ self.pos += self.vel + 0.5 * self.acc
+ #screen warping
+ if self.pos.x > WIDTH:
+ self.pos.x = 0
+ if self.pos.x < 0:
+ self.pos.x = WIDTH
+ self.rect.midbottom = self.pos
+ def update(self):
+ hits = pygame.sprite.spritecollide(self, platforms, False)
+ if hits:
+ self.vel.y = 0
+ self.pos.y = hits[0].rect.top + 1
+ def jump(self):
+ self.vel.y = -15
+class Platform(pygame.sprite.Sprite):
+ def __init__(self):
+ super().__init__()
+ self.surf = pygame.Surface((random.randint(50,100), 20))
+ self.surf.fill((255,0,0))
+ self.rect = self.surf.get_rect(center = (random.randint(0, WIDTH -10),
+random.randint(0, HEIGHT - 10)))
+#functions for the whole game (not indented within a class)
+def plat_gen():
+ while len(platforms) < 7:
+ p = Platform()
+ platforms.add(p)
+ all_sprites.add(p)
+#create a clock object to help control the frame rate
+FramesPerSec = pygame.time.Clock()
+#set up a display screen
+displaysurface = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Doodle Jump")
+#construct a platform object
+PT1 = Platform()
+PT1.surf = pygame.Surface((WIDTH, 20))
+PT1.surf.fill((255, 255, 255))
+PT1.rect = PT1.surf.get_rect(center= (WIDTH/2, HEIGHT -10))
+#construct a player object
+P1 = Player()
+#background text
+font = pygame.font.Font(None, 36)
+text = font.render("platformer.exe", 1, (80, 80, 80))
+#group for all the sprites
+all_sprites = pygame.sprite.Group()
+platforms = pygame.sprite.Group()
+all_sprites.add(P1)
+all_sprites.add(PT1)
+platforms.add(PT1)
+for x in range(random.randint(5,7)):
+ plat = Platform()
+ platforms.add(plat)
+ all_sprites.add(plat)
+background = pygame.image.load("background.png")
+running = True
+#main game loop
+while running:
+ #gather and evaluate all the events that happen in the game
+ for event in pygame.event.get():
+ if event.type == QUIT: #if the user clicks the x in the corner of the window
+ running = False
+ if event.type == pygame.KEYDOWN:
+ if event.key == pygame.K_SPACE:
+ P1.jump()
+ if P1.rect.top < HEIGHT / 3:
+ P1.pos.y += abs(P1.vel.y)
+ for plat in platforms:
+ plat.rect.y += abs(P1.vel.y)
+ if plat.rect.y > HEIGHT:
+ plat.rect.y = -200
+ plat.kill()
+ print(platforms)
+ #game logic
+ P1.move()
+ P1.update()
+ #generate platforms at top of screen and stuff
+ plat_gen()
+ #all of the drawing comes after the events and game logic
+ #fill the background color or image
+ displaysurface.fill((0,0,0))
+ displaysurface.blit(background, (0, 0))
+ displaysurface.blit(text, (WIDTH/2 -90,HEIGHT -60))
+ #draws all the sprites in the background
+ for entity in all_sprites:
+ displaysurface.blit(entity.surf, entity.rect)
+ #update display
+ pygame.display.update()
+ #control the frame rate
+ FramesPerSec.tick(FPS)
+#quit the pygame engine
+pygame.quit()
